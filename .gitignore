@@ -10,3 +10,6 @@ vm/*.scoreboard
 vm/*.vmxf
 vm/nvram
 vm/vmware.log
+
+# Helper script (contains credentials)
+push.bat
