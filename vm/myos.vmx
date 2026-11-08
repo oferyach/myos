@@ -1,0 +1,47 @@
+.encoding = "windows-1252"
+config.version = "8"
+virtualHW.version = "19"
+numvcpus = "1"
+cpuid.coresPerSocket = "1"
+memsize = "32"
+firmware = "bios"
+
+# No disk needed — booting entirely from floppy
+
+# Floppy drive with our boot image
+floppy0.present = "TRUE"
+floppy0.fileType = "file"
+floppy0.fileName = "C:\\src\\myos\\build\\myos.img"
+floppy0.autodetect = "FALSE"
+
+# Video — basic VGA only needed
+svga.autodetect = "FALSE"
+svga.vramSize = "4194304"
+
+# No network, no sound, no USB — minimal config
+usb.present = "FALSE"
+
+# Boot from floppy
+bios.bootDelay = "1000"
+
+displayName = "MyOS — Boot Sector"
+guestOS = "other"
+extendedConfigFile = "myos.vmxf"
+floppy0.clientDevice = "FALSE"
+virtualHW.productCompatibility = "hosted"
+ide0:0.present = "FALSE"
+ethernet0.present = "FALSE"
+sound.present = "FALSE"
+vmxstats.filename = "myos.scoreboard"
+numa.autosize.cookie = "10012"
+numa.autosize.vcpu.maxPerVirtualNode = "1"
+uuid.bios = "56 4d 80 d2 95 43 c4 ba-e4 d9 5a b9 2c 07 7a 47"
+uuid.location = "56 4d 80 d2 95 43 c4 ba-e4 d9 5a b9 2c 07 7a 47"
+vmotion.checkpointFBSize = "4194304"
+vmotion.checkpointSVGAPrimarySize = "4194304"
+vmotion.svga.mobMaxSize = "4194304"
+vmotion.svga.graphicsMemoryKB = "4096"
+monitor.phys_bits_used = "45"
+vm.lastPowerRequestTimestamp = "1794173116230000"
+cleanShutdown = "FALSE"
+softPowerOff = "FALSE"

@@ -1,0 +1,12 @@
+# Build outputs
+/build/
+
+# VMware runtime files (VMware creates these on boot)
+vm/*.vmem
+vm/*.vmem.lck/
+vm/*.vmsd
+vm/*.vmx.lck/
+vm/*.scoreboard
+vm/*.vmxf
+vm/nvram
+vm/vmware.log
