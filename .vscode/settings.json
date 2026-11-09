@@ -3,6 +3,10 @@
     "editor.wordBasedSuggestions": "off",
     "[assembly]": {
         "editor.defaultFormatter": "justsml053.nasm",
-        "editor.quickSuggestions": false
+        "editor.quickSuggestions": {
+            "comments": "off",
+            "strings": "off",
+            "other": "off"
+        }
     }
 }

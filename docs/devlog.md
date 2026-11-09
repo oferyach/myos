@@ -10,8 +10,17 @@
 3. Padded to 1.44 MB floppy disk image
 4. Created VMware config and booted — saw "Hello, MyOS!"
 
+## Session 2 — 2026-11-09
+### Step 1: Protected Mode
+- Added GDT (Global Descriptor Table) with null, code, and data descriptors
+- Added A20 line enable (keyboard controller method)
+- Set PE bit in CR0 to switch to protected mode
+- Far jump into 32-bit kernel code at 0x7E00
+- 32-bit kernel: clears VGA, prints status messages, halts
+- VGA print function: takes null-terminated string + color attribute
+
 ## Next
-- Switch to 32-bit protected mode
-- Set up GDT (Global Descriptor Table)
-- Enable A20 line
-- Load kernel from disk
+- Separate kernel code into its own file
+- Add IDT (Interrupt Descriptor Table)
+- Add keyboard driver
+- Add timer (PIT)
