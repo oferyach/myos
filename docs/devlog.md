@@ -18,9 +18,10 @@
 - Far jump into 32-bit kernel code at 0x7E00
 - 32-bit kernel: clears VGA, prints status messages, halts
 - VGA print function: takes null-terminated string + color attribute
+- **✅ VM boots and shows all status messages in protected mode!**
 
 ## Next
-- Separate kernel code into its own file
-- Add IDT (Interrupt Descriptor Table)
-- Add keyboard driver
-- Add timer (PIT)
+- [ ] Set up IDT (Interrupt Descriptor Table)
+- [ ] Remap PIC (Programmable Interrupt Controller)
+- [ ] Handle keyboard input
+- [ ] Add system timer (PIT)
