@@ -11,7 +11,7 @@ firmware = "bios"
 # Floppy drive with our boot image
 floppy0.present = "TRUE"
 floppy0.fileType = "file"
-floppy0.fileName = "C:\src\myos\build\myos-v12.img"
+floppy0.fileName = "C:\src\myos\build\myos-v18.img"
 
 # Video — basic VGA only needed
 svga.autodetect = "FALSE"
@@ -37,7 +37,7 @@ vmotion.checkpointSVGAPrimarySize = "4194304"
 vmotion.svga.mobMaxSize = "4194304"
 vmotion.svga.graphicsMemoryKB = "4096"
 monitor.phys_bits_used = "45"
-vm.lastPowerRequestTimestamp = "1794471935225000"
+vm.lastPowerRequestTimestamp = "1794488895390000"
 cleanShutdown = "FALSE"
 softPowerOff = "FALSE"
 tools.syncTime = "FALSE"

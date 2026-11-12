@@ -1,4 +1,4 @@
-; kernel.asm v11: IDT + sti + timer handler (no PIC)
+; kernel.asm v12: IDT + sti + PIC mask (no remap) - STABLE
 ORG 0x7E00
 [BITS 32]
 GDT_C    equ 0x08
@@ -68,7 +68,7 @@ idtt:
 idtp:
     dw 2047
     dd idtt
-t1 db "MyOS v11 TEST",0
+t1 db "MyOS v12 TEST",0
 t2 db "IDT+sti OK",0
 t3 db "Stable",0
 times 4096-($-$$) db 0
