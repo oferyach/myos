@@ -1,4 +1,4 @@
-; kernel.asm v12: IDT + sti + PIC mask (no remap) - STABLE
+; kernel.asm v36: IDT + sti + timer handler (remapped IRQ0)
 ORG 0x7E00
 [BITS 32]
 GDT_C    equ 0x08
@@ -13,39 +13,68 @@ k:
     mov fs,ax
     mov gs,ax
     mov esp,0x90000
+    cli
+    ; clear screen
     mov edi,V
-    mov cx,80*25
+    mov ecx,80*25
     xor eax,eax
     rep stosw
+    ; title
     mov edi,V+2*(80*0+20)
     mov esi,t1
     call p
+    ; IDT fill
     mov edi,idtt
-    mov cx,256
+    mov ecx,256
 .il:
     mov ax,ihand
     mov word [edi],ax
     mov word [edi+2],GDT_C
-    mov byte [edi+4],0x8E
-    mov word [edi+5],0
+    mov byte [edi+4],0
+    mov byte [edi+5],0x8E
+    mov word [edi+6],0
     add edi,8
     loop .il
     lidt [idtp]
+    ; timer handler at 0x20
+    mov eax,timh
+    mov edi,idtt+256
+    mov word [edi],ax
+    mov word [edi+2],GDT_C
+    mov byte [edi+4],0
+    mov byte [edi+5],0x8E
+    shr eax,16
+    mov word [edi+6],ax
+    ; PIC init
+    mov al,0x11
+    out 0x20,al
+    out 0xA0,al
+    mov al,0x20
+    out 0x21,al
+    mov al,0x28
+    out 0xA1,al
+    mov al,0x04
+    out 0x21,al
+    mov al,0x02
+    out 0xA1,al
+    mov al,0x01
+    out 0x21,al
+    mov al,0x01
+    out 0xA1,al
+    ; unmask IRQ0
+    mov al,0xFE
+    out 0x21,al
+    mov al,0xFF
+    out 0xA1,al
+    sti
+    ; display
     mov edi,V+2*(80*2+4)
     mov esi,t2
     call p
-    mov al,0xFF
-    out 0x21,al
-    nop
-    mov al,0xFF
-    out 0xA1,al
-    nop
-    sti
     mov edi,V+2*(80*4+4)
     mov esi,t3
     call p
 .hl:
-    hlt
     jmp .hl
 p:
     pusha
@@ -54,7 +83,7 @@ p:
     test al,al
     jz .pd
     mov ah,0x0F
-    mov [edi],ax
+    mov word [edi],ax
     add edi,2
     inc esi
     jmp .p1
@@ -63,12 +92,16 @@ p:
     ret
 ihand:
     iret
+timh:
+    mov al,0x20
+    out 0x20,al
+    iret
 idtt:
     times 256*8 db 0
 idtp:
     dw 2047
     dd idtt
-t1 db "MyOS v12 TEST",0
+t1 db "MyOS v36 TEST",0
 t2 db "IDT+sti OK",0
 t3 db "Stable",0
 times 4096-($-$$) db 0
