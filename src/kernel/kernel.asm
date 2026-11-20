@@ -24,6 +24,7 @@
 ;   0x90120  KPOS   — dword: how many chars are buffered
 ;   0x90124  KREADY — dword: 1 = a full line is waiting for the shell
 ;   0x90128  CUR    — dword: screen cursor, counted in CELLS (0..1999)
+;   0x9012C  CURCELL  — dword: cell where the blink-cursor underscore sits
 ;   0xB8000  VGA text page: one WORD per cell = glyph (low) + attr (high)
 ; ============================================================================
 ORG 0x7E00
@@ -45,6 +46,9 @@ KBUF     equ 0x90100
 KPOS     equ 0x90120
 KREADY   equ 0x90124
 CUR      equ 0x90128
+; CURCELL is the 'BSS' slot right after CUR: the cell index where the blinking
+; underscore cursor is currently drawn (see tc() below for how it is tracked)
+CURCELL  equ 0x9012C
 
 ; ============================================================================
 ; KERNEL ENTRY — reached from boot.asm as `jmp 0x08:0x7E00` (CS = GDT_C
@@ -174,6 +178,9 @@ k:
 ; — the factor 2 because every text cell is a WORD (glyph+attribute).
 ; p() also recomputes CUR to point just past what was printed.
     ; display prompt
+; Draw the blinking cursor at CUR (cell just past the banner). tc() remembers
+; this position in CURCELL and erases the old cell when it was not overwritten
+    call tc
     mov edi, V+2*(80*6+4)
     mov esi, prompt
     call p
@@ -223,6 +230,9 @@ k:
     sub dword [CUR],80
 ; Both paths (no-scroll and after-scroll) converge at this return label.
 .nln2:
+; CUR moved to the next line here (scroll included): tc() erases the old
+; cursor cell (a plain blank) and draws the underscore at the new CUR
+    call tc
     ret
 ; ============================================================================
 ; COMMAND DISPATCH — the consumed line sits at KBUF as a C string; each
@@ -246,6 +256,10 @@ k:
     xor eax,eax
     rep stosw
     mov dword [CUR], 4
+; cls: the REP STOSW already blanked everything; tc() paints the new cursor
+; at row 0 col 4 (its erase of the old cell is a harmless no-op on a blank
+; page, since the clear covered it)
+    call tc
     jmp .prompt
 ; BUILT-IN #2 'ver': print t_ver ("MyOS v44") at the current cursor.
 ; Byte address = V + CUR*2 (SHL 1), then p() does the printing.
@@ -356,7 +370,57 @@ p:
     mov eax,edi
     sub eax,V
     shr eax,1
+; p() rule: the printed text itself already covered the old cursor cell (it
+; started printing AT the cursor), so re-anchor CURCELL to the new CUR and
+; tc() below will just redraw the underscore at the new position
+    mov [CURCELL],eax
     mov [CUR],eax
+    call tc
+    popa
+    ret
+
+; ============================================================================
+; tc() - draw/track the BLINKING cursor (CALLed wherever CUR ended up moving:
+; startup, end of p(), end of .nln, cls, and kbh exit)
+; ---------------------------------------------------------------------------
+; The cursor is a normal text cell painted with an underscore (CP437 glyph
+; 0x5F) and attribute 0x8F: bit 7 of the attribute is the VGA text-mode
+; HARDWARE BLINK bit, so the display itself flashes every ~100 ms blink cell
+; (real 8086/286 hardware AND VMware) - no timer-handler bookkeeping needed,
+; and timh stays exactly as it was.
+;
+; CURCELL remembers where the underscore currently lives:
+;   CURCELL != CUR : the old cell was NOT overwritten by anything -> repaint
+;                    it as a plain space (0x0F20) FIRST, then draw the new
+;                    cell. This is what kills the ghost cursors people saw
+;                    after Enter / new-line / full-screen scrolls.
+;   CURCELL == CUR : in-place redraw only (cursor just re-blinks).
+; Position correctness everywhere follows from the invariant that the cell
+; AT CUR is always blank, and every mutation either overwrites the old
+; cursor cell with its own output (echo, command printing, backspace blank,
+; cls clear, scroll copy) or lands the cursor on a fresh blank cell.
+; PUSHAD/POPAD: callable from anywhere, including from inside kbh itself.
+; ============================================================================
+tc:
+    pusha
+    mov ebx, [CURCELL]
+    cmp ebx, [CUR]
+    je .tc_draw
+    cmp ebx, 80*25
+    jge .tc_draw
+    shl ebx, 1
+    add ebx, V
+    mov word [ebx], 0x0F20
+.tc_draw:
+    mov ebx, [CUR]
+    cmp ebx, 80*25
+    jl .tc_ok
+    mov ebx, 80*25-1
+.tc_ok:
+    mov [CURCELL], ebx
+    shl ebx, 1
+    add ebx, V
+    mov word [ebx], 0x8F5F
     popa
     ret
 ; --- The 256 default IDT gates' target: a bare IRET ----------------------
@@ -428,6 +492,10 @@ kbh:
     add ebx, V
     mov [ebx], ax
     inc dword [CUR]
+; Echo wrote the char INTO the old cursor cell, so the underscore is gone by
+; itself; just move CURCELL along so the tc() at kbh exit skips the erase
+    mov ebx, [CUR]
+    mov [CURCELL], ebx
     cmp dword [CUR], 80*25
     jl .kb_buf
 ; (Scroll branch entered only when CUR overflowed the page — identical
@@ -440,6 +508,10 @@ kbh:
     xor eax,eax
     rep stosw
     sub dword [CUR], 80
+; Full-page scroll (kbh path): the scrolled copy/blank pass already handled
+; the old cursor cell; re-anchor CURCELL to the post-scroll CUR
+    mov ebx, [CUR]
+    mov [CURCELL], ebx
 ; Buffer append: KPOS < 32 caps the input line at 31 chars (the 32nd slot
 ; is reserved for the NUL .kb_enter writes); once full, extra typed chars
 ; are still echoed on screen but simply not remembered (jge .kb_eoi).
@@ -478,6 +550,10 @@ kbh:
 ; POPAD restores the shell program's registers, IRET returns to the
 ; instruction the shell was spinning on.
 .kb_eoi:
+; Redraw/track the blinking cursor after this keyboard event: usually same
+; cell = redraw in place; after backspace the old underscore cell is erased
+; and drawn back one column (echo/scroll already fixed CURCELL above)
+    call tc
     mov al, 0x20
     out 0x20, al
     popa
