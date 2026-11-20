@@ -11,7 +11,7 @@ firmware = "bios"
 # Floppy drive with our boot image
 floppy0.present = "TRUE"
 floppy0.fileType = "file"
-floppy0.fileName = "C:\src\myos\build\myos-v44.img"
+floppy0.fileName = "C:\src\myos\build\myos-v45.img"
 
 # Video — basic VGA only needed
 svga.autodetect = "FALSE"
